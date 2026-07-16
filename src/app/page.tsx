@@ -19,7 +19,6 @@ const COLORS = [
 ];
 
 function corrColor(v: number): string {
-  // -1 (yeşil) -> 0 (nötr) -> +1 (kırmızı)
   if (v >= 0.9) return "rgba(248,113,113,0.55)";
   if (v >= 0.7) return "rgba(248,113,113,0.35)";
   if (v >= 0.4) return "rgba(251,191,36,0.25)";
@@ -96,7 +95,21 @@ function SuggestionCard({
   );
 }
 
-type Source = "live" | "csv" | "url";
+/** AI fon bulucu öneri tipi */
+interface FundSuggestion {
+  code: string;
+  name: string;
+  category: string;
+  reason: string;
+  availabilityScore: number;
+}
+interface AiFinderResult {
+  suggestions: FundSuggestion[];
+  summary: string;
+  disclaimer: string;
+}
+
+type Source = "live" | "csv" | "url" | "ai-find";
 
 export default function Home() {
   const [source, setSource] = useState<Source>("live");
@@ -110,6 +123,13 @@ export default function Home() {
   const [aiComment, setAiComment] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  // AI Fon Bulucu state
+  const [aiFindSector, setAiFindSector] = useState("");
+  const [aiFindDetails, setAiFindDetails] = useState("");
+  const [aiFindResult, setAiFindResult] = useState<AiFinderResult | null>(null);
+  const [aiFindLoading, setAiFindLoading] = useState(false);
+  const [aiFindError, setAiFindError] = useState<string | null>(null);
 
   async function fetchAiComment(analysis: AnalysisResult) {
     setAiLoading(true);
@@ -165,7 +185,7 @@ export default function Home() {
       }
       endpoint = "/api/analyze-data";
       payload = { csvTexts: csvFiles.map((f) => f.text) };
-    } else {
+    } else if (source === "url") {
       const urls = urlInput
         .split(/\r?\n/)
         .map((u) => u.trim())
@@ -176,6 +196,9 @@ export default function Home() {
       }
       endpoint = "/api/analyze-data";
       payload = { urls };
+    } else {
+      // AI Find - handled separately
+      return;
     }
 
     setLoading(true);
@@ -183,6 +206,7 @@ export default function Home() {
     setResult(null);
     setAiComment(null);
     setAiError(null);
+    setAiFindResult(null);
 
     try {
       const res = await fetch(endpoint, {
@@ -204,9 +228,45 @@ export default function Home() {
     }
   }
 
+  async function findFunds() {
+    if (!aiFindSector || aiFindSector.length < 2) {
+      setAiFindError("Lütfen bir sektör veya özellik belirtin.");
+      return;
+    }
+
+    setAiFindLoading(true);
+    setAiFindError(null);
+    setAiFindResult(null);
+
+    try {
+      const res = await fetch("/api/ai-fund-finder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sector: aiFindSector, details: aiFindDetails }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAiFindError(data.error ?? "Fon bulunamadı.");
+        return;
+      }
+      setAiFindResult(data as AiFinderResult);
+    } catch {
+      setAiFindError("Sunucuya bağlanılamadı.");
+    } finally {
+      setAiFindLoading(false);
+    }
+  }
+
   const sortedMetrics = result
     ? [...result.metrics].sort((a, b) => b.sharpe - a.sharpe)
     : [];
+
+  function scoreColor(v: number): string {
+    if (v >= 80) return "#34d399";
+    if (v >= 60) return "#fbbf24";
+    if (v >= 40) return "#fb923c";
+    return "#f87171";
+  }
 
   return (
     <div className="container">
@@ -236,7 +296,13 @@ export default function Home() {
             className={`tab${source === "url" ? " active" : ""}`}
             onClick={() => setSource("url")}
           >
-            🔗 URL&apos;den Çek
+            🔗 URL'den Çek
+          </button>
+          <button
+            className={`tab${source === "ai-find" ? " active" : ""}`}
+            onClick={() => setSource("ai-find")}
+          >
+            🤖 AI Fon Bul
           </button>
         </div>
 
@@ -265,7 +331,7 @@ export default function Home() {
               </select>
             </div>
             <p className="hint">
-              Veriler TEFAS&apos;tan canlı çekilmeye çalışılır. TEFAS bot
+              Veriler TEFAS'tan canlı çekilmeye çalışılır. TEFAS bot
               koruması nedeniyle erişim engellenebilir; bu durumda CSV veya URL
               seçeneğini kullanın.
             </p>
@@ -305,10 +371,10 @@ export default function Home() {
               </ul>
             )}
             <p className="hint">
-              TEFAS &quot;Tarihsel Veriler&quot; sayfasından dışa aktardığınız
+              TEFAS "Tarihsel Veriler" sayfasından dışa aktardığınız
               dosyaları yükleyin (tefas.gov.tr → Fon Verileri → Tarihsel
               Veriler → Excel/CSV indir). Desteklenen format: Tarih; Fon Kodu;
-              Fon Adı; Fiyat — veya basit &quot;tarih,kod,fiyat&quot;. Birden
+              Fon Adı; Fiyat — veya basit "tarih,kod,fiyat". Birden
               fazla dosya yükleyebilirsiniz; her fon için en az 30 günlük veri
               gerekir.
             </p>
@@ -327,20 +393,162 @@ export default function Home() {
               onChange={(e) => setUrlInput(e.target.value)}
             />
             <p className="hint">
-              URL&apos;ler sunucu üzerinden çekilir. CSV (tarih,kod,fiyat) veya
+              URL'ler sunucu üzerinden çekilir. CSV (tarih,kod,fiyat) veya
               JSON ([{"{"}date, code, price{"}"}]) formatları otomatik tanınır.
             </p>
           </>
         )}
 
-        <div className="input-row" style={{ marginTop: 12 }}>
-          <button className="primary" onClick={analyze} disabled={loading}>
-            {loading ? "Analiz ediliyor..." : "Analiz Et"}
-          </button>
-        </div>
+        {source === "ai-find" && (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 14, color: "var(--muted)", display: "block", marginBottom: 6 }}>
+                🎯 İstediğiniz sektör veya fon özelliklerini yazın
+              </label>
+              <textarea
+                className="fund-input"
+                style={{ minHeight: 50, textTransform: "none" }}
+                placeholder="Örn: Teknoloji hisse fonları, savunma sanayi, döviz bazlı, düşük riskli tahvil fonları, temettü verimi yüksek..."
+                value={aiFindSector}
+                onChange={(e) => setAiFindSector(e.target.value)}
+              />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 14, color: "var(--muted)", display: "block", marginBottom: 6 }}>
+                📝 Ek detaylar (opsiyonel)
+              </label>
+              <textarea
+                className="fund-input"
+                style={{ minHeight: 50, textTransform: "none" }}
+                placeholder="Vade tercihiniz, risk toleransınız, minimum getiri beklentiniz..."
+                value={aiFindDetails}
+                onChange={(e) => setAiFindDetails(e.target.value)}
+              />
+            </div>
+            <div className="input-row" style={{ marginTop: 8 }}>
+              <button className="primary" onClick={findFunds} disabled={aiFindLoading}>
+                {aiFindLoading ? "AI araştırıyor..." : "🤖 AI ile Fon Bul"}
+              </button>
+            </div>
+            <p className="hint">
+              Yapay zeka, belirttiğiniz kriterlere en uygun TEFAS fonlarını önerir
+              ve her fon için alınabilirlik yüzdesi hesaplar. Öneriler bilgilendirme
+              amaçlıdır, yatırım tavsiyesi değildir.
+            </p>
+          </>
+        )}
+
+        {(source === "live" || source === "csv" || source === "url") && (
+          <div className="input-row" style={{ marginTop: 12 }}>
+            <button className="primary" onClick={analyze} disabled={loading}>
+              {loading ? "Analiz ediliyor..." : "Analiz Et"}
+            </button>
+          </div>
+        )}
       </div>
 
       {error && <div className="error-box">⚠ {error}</div>}
+
+      {/* AI Fon Bul sonuçları */}
+      {source === "ai-find" && aiFindError && (
+        <div className="error-box">⚠ {aiFindError}</div>
+      )}
+      {source === "ai-find" && aiFindLoading && (
+        <div className="loading">
+          <div className="spinner" />
+          Yapay zeka en uygun fonları araştırıyor...
+        </div>
+      )}
+      {source === "ai-find" && aiFindResult && (
+        <>
+          <div className="card">
+            <h2>🤖 AI Önerileri</h2>
+            <p
+              style={{
+                fontSize: 14,
+                color: "var(--muted)",
+                marginBottom: 16,
+                lineHeight: 1.6,
+              }}
+            >
+              {aiFindResult.summary}
+            </p>
+            <div className="suggestion-grid">
+              {aiFindResult.suggestions.map((fund, i) => (
+                <div key={i} className="suggestion-card">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div>
+                      <span className="badge" style={{ fontSize: 15 }}>
+                        {fund.code}
+                      </span>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: "var(--text)",
+                          marginTop: 4,
+                        }}
+                      >
+                        {fund.name}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "var(--muted)",
+                          marginBottom: 2,
+                        }}
+                      >
+                        Alınabilirlik
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 22,
+                          fontWeight: 700,
+                          color: scoreColor(fund.availabilityScore),
+                        }}
+                      >
+                        %{fund.availabilityScore}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--muted)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {fund.category}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13.5,
+                      color: "var(--text)",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {fund.reason}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p
+              className="hint"
+              style={{ marginTop: 12, fontStyle: "italic" }}
+            >
+              {aiFindResult.disclaimer}
+            </p>
+          </div>
+        </>
+      )}
 
       {loading && (
         <div className="loading">
