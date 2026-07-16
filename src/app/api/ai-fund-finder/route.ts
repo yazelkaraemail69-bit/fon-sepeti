@@ -19,45 +19,236 @@ interface FundFinderResponse {
   disclaimer: string;
 }
 
-/** Gerçek TEFAS'ta bulunan yaygın fon kodları ve kategorileri */
+/** Gerçek TEFAS fon veritabanı - detaylı bilgiler */
 const TEFAS_FUNDS = [
-  { code: "AFA", name: "Ak Portfolio Foreign Equities Fund", category: "Hisse" },
-  { code: "ATA", name: "ATA Yatırım Fonu", category: "Karma" },
-  { code: "BGA", name: "BGP Para Piyasası Fonu", category: "Para Piyasası" },
-  { code: "BGP", name: "BGP Hisse Senedi Fonu", category: "Hisse" },
-  { code: "BKT", name: "Birikim Katılım Fonu", category: "Katılım" },
-  { code: "EAS", name: "East Capital Fonu", category: "Hisse" },
-  { code: "HAN", name: "Halk Yatırım Fonu", category: "Karma" },
-  { code: "HSA", name: "HSBC Portföy Yönetimi Fonu", category: "Karma" },
-  { code: "IHE", name: "İş Portföy Hisse Senedi Fonu", category: "Hisse" },
-  { code: "IIH", name: "İş Portföy IIH Fonu", category: "Değişken" },
-  { code: "IIJ", name: "İş Portföy IIJ Fonu", category: "Değişken" },
-  { code: "IIO", name: "İş Portföy IIO Fonu", category: "Değişken" },
-  { code: "IIR", name: "İş Portföy IIR Fonu", category: "Değişken" },
-  { code: "IPB", name: "İş Portföy Borçlanma Araçları Fonu", category: "Tahvil" },
-  { code: "ISY", name: "İş Portföy Yabancı Fon", category: "Döviz" },
-  { code: "KAT", name: "Katılım Portföy Fonu", category: "Katılım" },
-  { code: "MAC", name: "Macquarie Türkiye Fonu", category: "Hisse" },
-  { code: "MUA", name: "MUA Portföy Fonu", category: "Karma" },
-  { code: "OZN", name: "Oyak Portföy Fonu", category: "Karma" },
-  { code: "PPN", name: "Para Piyasası Fonu", category: "Para Piyasası" },
-  { code: "RON", name: "RON Portföy Fonu", category: "Değişken" },
-  { code: "SBN", name: "SBN Portföy Fonu", category: "Karma" },
-  { code: "TCA", name: "TCA Portföy Fonu", category: "Karma" },
-  { code: "TGE", name: "TGE Emtia Fonu", category: "Emtia" },
-  { code: "TKF", name: "Türkiye Kira Sertifikaları Fonu", category: "Kira Sertifikası" },
-  { code: "TRB", name: "TRB Portföy Fonu", category: "Değişken" },
-  { code: "TTE", name: "TTE Teknoloji Fonu", category: "Hisse" },
-  { code: "TTV", name: "TTV Portföy Fonu", category: "Karma" },
-  { code: "TTY", name: "TTY Portföy Fonu", category: "Değişken" },
-  { code: "TYZ", name: "TYZ Portföy Fonu", category: "Karma" },
-  { code: "VKF", name: "VKF Portföy Fonu", category: "Değişken" },
-  { code: "YAS", name: "YAS Portföy Fonu", category: "Hisse" },
-  { code: "YDH", name: "YDH Portföy Fonu", category: "Karma" },
+  {
+    kod: "TTE",
+    ad: "İş Portföy BIST Teknoloji Ağırlıklı Sınırlı Hisse Senedi Yoğun Fon",
+    odak_alani: "Teknoloji",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen (Yerli yazılım/donanım)"
+  },
+  {
+    kod: "YAS",
+    ad: "Yapı Kredi Portföy Koç Holding İştirak Fonu",
+    odak_alani: "Holding / Conglomerate",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Uygun Değil"
+  },
+  {
+    kod: "AFA",
+    ad: "Ak Portföy Amerika Yabancı Hisse Senedi Fonu",
+    odak_alani: "Genel Hisse Senedi (Karma)",
+    coğrafya: "Yabancı (ABD)",
+    yari_iletken_uygunluk: "Düşük (Sadece genel teknoloji devleri var)"
+  },
+  {
+    kod: "TGE",
+    ad: "TGE Emtia Fonu",
+    odak_alani: "Emtia (Altın, petrol, tarım ürünleri)",
+    coğrafya: "Global",
+    yari_iletken_uygunluk: "Uygun Değil"
+  },
+  {
+    kod: "MAC",
+    ad: "Macquarie Türkiye Fonu",
+    odak_alani: "Türkiye Hisse Senedi",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "BGP",
+    ad: "BGP Hisse Senedi Fonu",
+    odak_alani: "Türkiye Hisse Senedi",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "PPN",
+    ad: "Para Piyasası Fonu",
+    odak_alani: "Kısa vadeli borçlanma araçları",
+    coğrafya: "Yerli (TL)",
+    yari_iletken_uygunluk: "Uygun Değil"
+  },
+  {
+    kod: "IPB",
+    ad: "İş Portföy Borçlanma Araçları Fonu",
+    odak_alani: "Tahvil/bono",
+    coğrafya: "Yerli (TL)",
+    yari_iletken_uygunluk: "Uygun Değil"
+  },
+  {
+    kod: "ISY",
+    ad: "İş Portföy Yabancı Fon",
+    odak_alani: "Yabancı hisse/döviz",
+    coğrafya: "Yabancı",
+    yari_iletken_uygunluk: "Düşük"
+  },
+  {
+    kod: "IHE",
+    ad: "İş Portföy Hisse Senedi Fonu",
+    odak_alani: "Türkiye Hisse Senedi",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "BKT",
+    ad: "Birikim Katılım Fonu",
+    odak_alani: "Katılım hesabı uyumlu",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "EAS",
+    ad: "East Capital Fonu",
+    odak_alani: "Yabancı hisse senedi",
+    coğrafya: "Yabancı (Avrupa/Global)",
+    yari_iletken_uygunluk: "Düşük"
+  },
+  {
+    kod: "HAN",
+    ad: "Halk Yatırım Fonu",
+    odak_alani: "Türkiye Hisse Senedi",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "HSA",
+    ad: "HSBC Portföy Yönetimi Fonu",
+    odak_alani: "Karma (Hisse + Tahvil)",
+    coğrafya: "Global",
+    yari_iletken_uygunluk: "Düşük"
+  },
+  {
+    kod: "KAT",
+    ad: "Katılım Portföy Fonu",
+    odak_alani: "Katılım uyumlu yatırım",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "MUA",
+    ad: "MUA Portföy Fonu",
+    odak_alani: "Karma",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "OZN",
+    ad: "Oyak Portföy Fonu",
+    odak_alani: "Karma",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "SBN",
+    ad: "SBN Portföy Fonu",
+    odak_alani: "Karma",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "TCA",
+    ad: "TCA Portföy Fonu",
+    odak_alani: "Karma",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "TKF",
+    ad: "Türkiye Kira Sertifikaları Fonu",
+    odak_alani: "Kira sertifikaları",
+    coğrafya: "Yerli (TL)",
+    yari_iletken_uygunluk: "Uygun Değil"
+  },
+  {
+    kod: "TRB",
+    ad: "TRB Portföy Fonu",
+    odak_alani: "Değişken",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "TTV",
+    ad: "TTV Portföy Fonu",
+    odak_alani: "Karma",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "TTY",
+    ad: "TTY Portföy Fonu",
+    odak_alani: "Değişken",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "TYZ",
+    ad: "TYZ Portföy Fonu",
+    odak_alani: "Karma",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "VKF",
+    ad: "VKF Portföy Fonu",
+    odak_alani: "Değişken",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "YDH",
+    ad: "YDH Portföy Fonu",
+    odak_alani: "Karma",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "IIH",
+    ad: "İş Portföy IIH Fonu",
+    odak_alani: "Değişken",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "IIJ",
+    ad: "İş Portföy IIJ Fonu",
+    odak_alani: "Değişken",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "IIO",
+    ad: "İş Portföy IIO Fonu",
+    odak_alani: "Değişken",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "IIR",
+    ad: "İş Portföy IIR Fonu",
+    odak_alani: "Değişken",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  },
+  {
+    kod: "BGA",
+    ad: "BGP Para Piyasası Fonu",
+    odak_alani: "Para Piyasası",
+    coğrafya: "Yerli (TL)",
+    yari_iletken_uygunluk: "Uygun Değil"
+  },
+  {
+    kod: "ATA",
+    ad: "ATA Yatırım Fonu",
+    odak_alani: "Karma",
+    coğrafya: "Yerli (Borsa İstanbul)",
+    yari_iletken_uygunluk: "Kısmen"
+  }
 ];
 
 function buildPrompt(sector: string, details: string): string {
-  const fundList = TEFAS_FUNDS.map(f => `${f.code} (${f.name}, ${f.category})`).join("\n");
+  const fundList = TEFAS_FUNDS.map(f => `${f.kod} (${f.ad}, ${f.odak_alani})`).join("\n");
 
   return `Sen Türkiye'deki TEFAS yatırım fonları konusunda uzman bir finansal danışmansın. Kullanıcının belirlediği sektör/özelliklere göre en uygun fonları öneriyorsun.
 
