@@ -4,7 +4,7 @@ import { AnalysisResult } from "@/lib/types";
 export const maxDuration = 60;
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "google/gemini-2.0-flash-001";
+const MODEL = "google/gemini-2.0-flash";
 
 function buildPrompt(r: AnalysisResult): string {
   const metrics = r.metrics
