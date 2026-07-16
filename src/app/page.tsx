@@ -109,7 +109,7 @@ interface AiFinderResult {
   disclaimer: string;
 }
 
-type Source = "live" | "csv" | "url" | "ai-find";
+type Source = "live" | "csv" | "url" | "ai-find" | "ai-goal";
 
 export default function Home() {
   const [source, setSource] = useState<Source>("live");
@@ -130,6 +130,89 @@ export default function Home() {
   const [aiFindResult, setAiFindResult] = useState<AiFinderResult | null>(null);
   const [aiFindLoading, setAiFindLoading] = useState(false);
   const [aiFindError, setAiFindError] = useState<string | null>(null);
+
+  // Hedefini Anlat state
+  const [goalInput, setGoalInput] = useState("");
+  const [goalLoading, setGoalLoading] = useState(false);
+  const [goalError, setGoalError] = useState<string | null>(null);
+
+  async function processGoal() {
+    if (!goalInput || goalInput.length < 5) {
+      setGoalError("Lütfen yatırım hedefinizi biraz daha detaylı anlatın.");
+      return;
+    }
+
+    setGoalLoading(true);
+    setGoalError(null);
+    setAiFindResult(null);
+    setAiFindError(null);
+
+    try {
+      // 1. Adım: AI hedefi prompt'a dönüştürsün
+      const promptRes = await fetch("/api/ai-prompt-builder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: goalInput }),
+      });
+      const promptData = await promptRes.json();
+      if (!promptRes.ok) {
+        setGoalError(promptData.error ?? "Hedef anlaşılamadı.");
+        setGoalLoading(false);
+        return;
+      }
+
+      // 2. Adım: AI Fon Bul'u bu promptla çalıştır
+      setSource("ai-find");
+      setAiFindSector(promptData.sector);
+      setAiFindDetails(promptData.details ?? "");
+
+      const fundRes = await fetch("/api/ai-fund-finder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sector: promptData.sector,
+          details: promptData.details ?? "",
+        }),
+      });
+      const fundData = await fundRes.json();
+      if (!fundRes.ok) {
+        setAiFindError(fundData.error ?? "Fon bulunamadı.");
+        setGoalLoading(false);
+        return;
+      }
+      setAiFindResult(fundData as AiFinderResult);
+    } catch {
+      setGoalError("Sunucuya bağlanılamadı.");
+    } finally {
+      setGoalLoading(false);
+    }
+  }
+
+  async function quickFind(sector: string, details: string) {
+    setSource("ai-find");
+    setAiFindSector(sector);
+    setAiFindDetails(details);
+    setAiFindResult(null);
+    setAiFindError(null);
+    setAiFindLoading(true);
+    try {
+      const res = await fetch("/api/ai-fund-finder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sector, details }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAiFindError(data.error ?? "Fon bulunamadı.");
+        return;
+      }
+      setAiFindResult(data as AiFinderResult);
+    } catch {
+      setAiFindError("Sunucuya bağlanılamadı.");
+    } finally {
+      setAiFindLoading(false);
+    }
+  }
 
   async function fetchAiComment(analysis: AnalysisResult) {
     setAiLoading(true);
@@ -304,6 +387,12 @@ export default function Home() {
           >
             🤖 AI Fon Bul
           </button>
+          <button
+            className={`tab${source === "ai-goal" ? " active" : ""}`}
+            onClick={() => setSource("ai-goal")}
+          >
+            🎯 Hedefini Anlat
+          </button>
         </div>
 
         {source === "live" && (
@@ -438,6 +527,34 @@ export default function Home() {
           </>
         )}
 
+        {source === "ai-goal" && (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 14, color: "var(--muted)", display: "block", marginBottom: 6 }}>
+                🎯 Yatırım hedefinizi kendi cümlelerinizle anlatın
+              </label>
+              <textarea
+                className="fund-input"
+                style={{ minHeight: 100, textTransform: "none" }}
+                placeholder="Örn: 5 yıl vadeli, ayda 2000 TL biriktirebileceğim, teknoloji hisse fonlarına yatırım yapmak istiyorum. Orta risk tolere edebilirim. Yıllık en az %30 getiri hedefliyorum."
+                value={goalInput}
+                onChange={(e) => setGoalInput(e.target.value)}
+              />
+            </div>
+            <div className="input-row" style={{ marginTop: 8 }}>
+              <button className="primary" onClick={processGoal} disabled={goalLoading}>
+                {goalLoading ? "Hedefiniz analiz ediliyor..." : "🎯 Hedefimi Kriterlere Dönüştür"}
+              </button>
+            </div>
+            <p className="hint">
+              AI, hedefinizi analiz edip yapılandırılmış kriterlere dönüştürecek,
+              ardından en uygun fonları bulacak. Örnekler: "Emeklilik için düşük riskli fon", 
+              "5 yıl vadeli döviz bazlı birikim", "Teknoloji hisselerine yatırım"
+            </p>
+            {goalError && <div className="error-box" style={{ marginTop: 12 }}>⚠ {goalError}</div>}
+          </>
+        )}
+
         {(source === "live" || source === "csv" || source === "url") && (
           <div className="input-row" style={{ marginTop: 12 }}>
             <button className="primary" onClick={analyze} disabled={loading}>
@@ -448,6 +565,13 @@ export default function Home() {
       </div>
 
       {error && <div className="error-box">⚠ {error}</div>}
+
+      {source === "ai-goal" && goalLoading && (
+        <div className="loading">
+          <div className="spinner" />
+          Hedefiniz analiz ediliyor ve en uygun fonlar araştırılıyor...
+        </div>
+      )}
 
       {/* AI Fon Bul sonuçları */}
       {source === "ai-find" && aiFindError && (
