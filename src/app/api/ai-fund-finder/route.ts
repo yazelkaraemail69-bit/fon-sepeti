@@ -19,24 +19,61 @@ interface FundFinderResponse {
   disclaimer: string;
 }
 
+/** Gerçek TEFAS'ta bulunan yaygın fon kodları ve kategorileri */
+const TEFAS_FUNDS = [
+  { code: "AFA", name: "Ak Portfolio Foreign Equities Fund", category: "Hisse" },
+  { code: "ATA", name: "ATA Yatırım Fonu", category: "Karma" },
+  { code: "BGA", name: "BGP Para Piyasası Fonu", category: "Para Piyasası" },
+  { code: "BGP", name: "BGP Hisse Senedi Fonu", category: "Hisse" },
+  { code: "BKT", name: "Birikim Katılım Fonu", category: "Katılım" },
+  { code: "EAS", name: "East Capital Fonu", category: "Hisse" },
+  { code: "HAN", name: "Halk Yatırım Fonu", category: "Karma" },
+  { code: "HSA", name: "HSBC Portföy Yönetimi Fonu", category: "Karma" },
+  { code: "IHE", name: "İş Portföy Hisse Senedi Fonu", category: "Hisse" },
+  { code: "IIH", name: "İş Portföy IIH Fonu", category: "Değişken" },
+  { code: "IIJ", name: "İş Portföy IIJ Fonu", category: "Değişken" },
+  { code: "IIO", name: "İş Portföy IIO Fonu", category: "Değişken" },
+  { code: "IIR", name: "İş Portföy IIR Fonu", category: "Değişken" },
+  { code: "IPB", name: "İş Portföy Borçlanma Araçları Fonu", category: "Tahvil" },
+  { code: "ISY", name: "İş Portföy Yabancı Fon", category: "Döviz" },
+  { code: "KAT", name: "Katılım Portföy Fonu", category: "Katılım" },
+  { code: "MAC", name: "Macquarie Türkiye Fonu", category: "Hisse" },
+  { code: "MUA", name: "MUA Portföy Fonu", category: "Karma" },
+  { code: "OZN", name: "Oyak Portföy Fonu", category: "Karma" },
+  { code: "PPN", name: "Para Piyasası Fonu", category: "Para Piyasası" },
+  { code: "RON", name: "RON Portföy Fonu", category: "Değişken" },
+  { code: "SBN", name: "SBN Portföy Fonu", category: "Karma" },
+  { code: "TCA", name: "TCA Portföy Fonu", category: "Karma" },
+  { code: "TGE", name: "TGE Emtia Fonu", category: "Emtia" },
+  { code: "TKF", name: "Türkiye Kira Sertifikaları Fonu", category: "Kira Sertifikası" },
+  { code: "TRB", name: "TRB Portföy Fonu", category: "Değişken" },
+  { code: "TTE", name: "TTE Teknoloji Fonu", category: "Hisse" },
+  { code: "TTV", name: "TTV Portföy Fonu", category: "Karma" },
+  { code: "TTY", name: "TTY Portföy Fonu", category: "Değişken" },
+  { code: "TYZ", name: "TYZ Portföy Fonu", category: "Karma" },
+  { code: "VKF", name: "VKF Portföy Fonu", category: "Değişken" },
+  { code: "YAS", name: "YAS Portföy Fonu", category: "Hisse" },
+  { code: "YDH", name: "YDH Portföy Fonu", category: "Karma" },
+];
+
 function buildPrompt(sector: string, details: string): string {
+  const fundList = TEFAS_FUNDS.map(f => `${f.code} (${f.name}, ${f.category})`).join("\n");
+
   return `Sen Türkiye'deki TEFAS yatırım fonları konusunda uzman bir finansal danışmansın. Kullanıcının belirlediği sektör/özelliklere göre en uygun fonları öneriyorsun.
 
 Kullanıcının talebi:
 - Sektör/Özellik: ${sector}
 - Ek detaylar: ${details}
 
-Görevin:
-1. Bu kriterlere en uygun 5-8 TEFAS fon kodunu ve ismini öner.
-2. Her fon için kısa bir neden (neden bu fon uygun) yaz.
-3. Her fon için bir "Alınabilirlik Yüzdesi" (0-100 arası) hesapla. Bu puan şu kriterlere göre olsun:
-   - Fonun sektörle uyumu (en önemli)
-   - Fon büyüklüğü ve likiditesi (bildiğin kadarıyla)
-   - Risk profili uyumu
-   - Getiri potansiyeli
-4. Kısa bir özet geç.
+SADECE aşağıdaki gerçek TEFAS fon listesinden seçim yap. KESİNLİKLE bu liste dışında fon kodu kullanma (uydurma fon yazma):
 
-Kesinlikle sadece gerçek TEFAS fon kodlarını kullan (örn: TTE, AFA, MAC, YAS, IPB, HSA, BGP, TGE, IIH, IIJ, TKF, BKT, EAS, ATA, BGA, HAN, IHE, IIO, IIR, ISY, KAT, MUA, OZN, PPN, RON, SBN, TCA, TGE, TRB, TTV, TTY, TYZ, VKF, YAS, YDH gibi).
+${fundList}
+
+Görevin:
+1. Bu kriterlere en uygun 3-6 fon seç (yukarıdaki listeden).
+2. Her fon için kısa bir neden yaz.
+3. Her fon için "Alınabilirlik Yüzdesi" (0-100) hesapla.
+4. Kısa bir özet geç.
 
 YANITINI SADECE JSON OLARAK VER, ekstra metin yazma. Şu formatı kullan:
 {
