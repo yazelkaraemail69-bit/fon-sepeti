@@ -304,7 +304,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const sector: string = body.sector ?? "";
     const details: string = body.details ?? "";
-    const customFunds: CustomFund[] | undefined = body.customFunds;
+    const customFunds: CustomFund[] | undefined = body.customFunds
+      ? body.customFunds.slice(0, 250)
+      : undefined;
 
     if (!sector || sector.length < 2) {
       return NextResponse.json(

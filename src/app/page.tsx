@@ -183,10 +183,21 @@ export default function Home() {
         setFundDbError("CSV'de geçerli fon bulunamadı. Örnek formatı kontrol edin.");
         return;
       }
+      const MAX_FUNDS = 250;
+      if (funds.length > MAX_FUNDS) {
+        setFundDbError(`En fazla ${MAX_FUNDS} fon yükleyebilirsiniz. Sizinki ${funds.length} adet. İlk ${MAX_FUNDS} fon alındı.`);
+        setCustomFunds(funds.slice(0, MAX_FUNDS));
+        return;
+      }
       setCustomFunds(funds);
     } catch {
       setFundDbError("Dosya okunurken hata oluşu.");
     }
+  }
+
+  function clearFundDb() {
+    setCustomFunds([]);
+    setFundDbError(null);
   }
 
   async function processGoal() {
@@ -638,8 +649,24 @@ export default function Home() {
               />
             </div>
             {customFunds.length > 0 && (
-              <div className="warn-box" style={{ marginBottom: 12 }}>
-                ✅ {customFunds.length} fon yüklendi. Artık "AI Fon Bul" ve "Hedefini Anlat" sekmelerinde bu fonlar kullanılacak.
+              <div className="warn-box" style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>✅ {customFunds.length} fon yüklendi. Artık "AI Fon Bul" ve "Hedefini Anlat" sekmelerinde bu fonlar kullanılacak.</span>
+                <button
+                  onClick={clearFundDb}
+                  style={{
+                    background: "var(--red)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    marginLeft: 12,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  🗑 Veritabanını Sil
+                </button>
               </div>
             )}
             <p className="hint">
