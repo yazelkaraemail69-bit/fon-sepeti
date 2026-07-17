@@ -152,18 +152,22 @@ export default function Home() {
     const lines = text.split(/\r?\n/).filter((l) => l.trim());
     const funds: CustomFund[] = [];
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      let line = lines[i].trim();
       if (!line || line.toLowerCase().startsWith("kod")) continue;
-      const parts = line.split(";");
+      // Excel'den gelen tırnak işaretlerini temizle
+      line = line.replace(/^["']|["']$/g, "").replace(/["'];["']/g, ";").replace(/["'],["']/g, ",");
+      // Hem noktalı virgül (;) hem virgül (,) ayracını destekle
+      const delimiter = line.includes(";") ? ";" : ",";
+      const parts = line.split(delimiter).map((p) => p.trim().replace(/^["']|["']$/g, ""));
       if (parts.length < 2) continue;
       const [kod, ad, odak_alani = "", coğrafya = "", yari_iletken_uygunluk = ""] = parts;
       if (!kod || !ad) continue;
       funds.push({
-        kod: kod.trim().toUpperCase(),
-        ad: ad.trim(),
-        odak_alani: odak_alani.trim(),
-        coğrafya: coğrafya.trim(),
-        yari_iletken_uygunluk: yari_iletken_uygunluk.trim(),
+        kod: kod.toUpperCase(),
+        ad,
+        odak_alani,
+        coğrafya,
+        yari_iletken_uygunluk,
       });
     }
     return funds;
@@ -431,7 +435,7 @@ export default function Home() {
             className={`tab${source === "csv" ? " active" : ""}`}
             onClick={() => setSource("csv")}
           >
-            📁 CSV Yükle
+            Fiyat Verisi CSV
           </button>
           <button
             className={`tab${source === "url" ? " active" : ""}`}
@@ -524,12 +528,13 @@ export default function Home() {
               </ul>
             )}
             <p className="hint">
+              <b style={{ color: "var(--yellow)" }}>NOT:</b> Bu sekme{" "}
+              <b>fiyat verisi (tarih + fiyat)</b> içindir. Sadece fon listesi
+              yüklemek için lütfen <b>📊 Fon Veritabanı</b> sekmesini kullanın.
+              <br />
               TEFAS "Tarihsel Veriler" sayfasından dışa aktardığınız
-              dosyaları yükleyin (tefas.gov.tr → Fon Verileri → Tarihsel
-              Veriler → Excel/CSV indir). Desteklenen format: Tarih; Fon Kodu;
-              Fon Adı; Fiyat — veya basit "tarih,kod,fiyat". Birden
-              fazla dosya yükleyebilirsiniz; her fon için en az 30 günlük veri
-              gerekir.
+              dosyaları yükleyin. Desteklenen format: Tarih; Fon Kodu; Fiyat.
+              Her fon için en az 30 günlük veri gerekir.
             </p>
           </>
         )}
