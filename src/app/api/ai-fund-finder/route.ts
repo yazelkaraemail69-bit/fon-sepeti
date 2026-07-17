@@ -247,8 +247,17 @@ const TEFAS_FUNDS = [
   }
 ];
 
-function buildPrompt(sector: string, details: string): string {
-  const fundList = TEFAS_FUNDS.map(f => `${f.kod} (${f.ad}, ${f.odak_alani})`).join("\n");
+interface CustomFund {
+  kod: string;
+  ad: string;
+  odak_alani: string;
+  coğrafya: string;
+  yari_iletken_uygunluk: string;
+}
+
+function buildPrompt(sector: string, details: string, customFunds?: CustomFund[]): string {
+  const funds = customFunds && customFunds.length > 0 ? customFunds : TEFAS_FUNDS;
+  const fundList = funds.map(f => `${f.kod} (${f.ad}, ${f.odak_alani}, ${f.coğrafya})`).join("\n");
 
   return `Sen Türkiye'deki TEFAS yatırım fonları konusunda uzman bir finansal danışmansın. Kullanıcının belirlediği sektör/özelliklere göre en uygun fonları öneriyorsun.
 
@@ -295,6 +304,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const sector: string = body.sector ?? "";
     const details: string = body.details ?? "";
+    const customFunds: CustomFund[] | undefined = body.customFunds;
 
     if (!sector || sector.length < 2) {
       return NextResponse.json(
@@ -314,7 +324,7 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: "user",
-            content: buildPrompt(sector, details),
+            content: buildPrompt(sector, details, customFunds),
           },
         ],
         max_tokens: 2000,

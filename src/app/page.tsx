@@ -109,7 +109,15 @@ interface AiFinderResult {
   disclaimer: string;
 }
 
-type Source = "live" | "csv" | "url" | "ai-find" | "ai-goal";
+type Source = "live" | "csv" | "url" | "ai-find" | "ai-goal" | "fund-db";
+
+interface CustomFund {
+  kod: string;
+  ad: string;
+  odak_alani: string;
+  coğrafya: string;
+  yari_iletken_uygunluk: string;
+}
 
 export default function Home() {
   const [source, setSource] = useState<Source>("live");
@@ -135,6 +143,47 @@ export default function Home() {
   const [goalInput, setGoalInput] = useState("");
   const [goalLoading, setGoalLoading] = useState(false);
   const [goalError, setGoalError] = useState<string | null>(null);
+
+  // Fon veritabanı state
+  const [customFunds, setCustomFunds] = useState<CustomFund[]>([]);
+  const [fundDbError, setFundDbError] = useState<string | null>(null);
+
+  function parseFundDbCsv(text: string): CustomFund[] {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    const funds: CustomFund[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || line.toLowerCase().startsWith("kod")) continue;
+      const parts = line.split(";");
+      if (parts.length < 2) continue;
+      const [kod, ad, odak_alani = "", coğrafya = "", yari_iletken_uygunluk = ""] = parts;
+      if (!kod || !ad) continue;
+      funds.push({
+        kod: kod.trim().toUpperCase(),
+        ad: ad.trim(),
+        odak_alani: odak_alani.trim(),
+        coğrafya: coğrafya.trim(),
+        yari_iletken_uygunluk: yari_iletken_uygunluk.trim(),
+      });
+    }
+    return funds;
+  }
+
+  async function handleFundDbFile(file: File | null) {
+    if (!file) return;
+    setFundDbError(null);
+    try {
+      const text = await file.text();
+      const funds = parseFundDbCsv(text);
+      if (funds.length === 0) {
+        setFundDbError("CSV'de geçerli fon bulunamadı. Örnek formatı kontrol edin.");
+        return;
+      }
+      setCustomFunds(funds);
+    } catch {
+      setFundDbError("Dosya okunurken hata oluşu.");
+    }
+  }
 
   async function processGoal() {
     if (!goalInput || goalInput.length < 5) {
@@ -172,6 +221,7 @@ export default function Home() {
         body: JSON.stringify({
           sector: promptData.sector,
           details: promptData.details ?? "",
+          customFunds: customFunds.length > 0 ? customFunds : undefined,
         }),
       });
       const fundData = await fundRes.json();
@@ -199,7 +249,11 @@ export default function Home() {
       const res = await fetch("/api/ai-fund-finder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sector, details }),
+        body: JSON.stringify({
+          sector,
+          details,
+          customFunds: customFunds.length > 0 ? customFunds : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -325,7 +379,11 @@ export default function Home() {
       const res = await fetch("/api/ai-fund-finder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sector: aiFindSector, details: aiFindDetails }),
+        body: JSON.stringify({
+          sector: aiFindSector,
+          details: aiFindDetails,
+          customFunds: customFunds.length > 0 ? customFunds : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -392,6 +450,12 @@ export default function Home() {
             onClick={() => setSource("ai-goal")}
           >
             🎯 Hedefini Anlat
+          </button>
+          <button
+            className={`tab${source === "fund-db" ? " active" : ""}`}
+            onClick={() => setSource("fund-db")}
+          >
+            📊 Fon Veritabanı
           </button>
         </div>
 
@@ -555,6 +619,48 @@ export default function Home() {
           </>
         )}
 
+        {source === "fund-db" && (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 14, color: "var(--muted)", display: "block", marginBottom: 6 }}>
+                📊 Fon veritabanı CSV dosyanızı yükleyin
+              </label>
+              <input
+                type="file"
+                accept=".csv,.txt"
+                onChange={(e) => handleFundDbFile(e.target.files?.[0] ?? null)}
+                style={{ margin: "8px 0", color: "var(--muted)" }}
+              />
+            </div>
+            {customFunds.length > 0 && (
+              <div className="warn-box" style={{ marginBottom: 12 }}>
+                ✅ {customFunds.length} fon yüklendi. Artık "AI Fon Bul" ve "Hedefini Anlat" sekmelerinde bu fonlar kullanılacak.
+              </div>
+            )}
+            <p className="hint">
+              <b>CSV nedir?</b> Excel'in basit hali. Notepad'de bile oluşturabilirsiniz.
+              <br />
+              <b>Format:</b> Her satırda bir fon, noktalı virgül (;) ile ayrılmış:
+              <br />
+              <code style={{ color: "var(--accent)", fontSize: 12 }}>
+                kod;ad;odak_alani;coğrafya;yari_iletken_uygunluk
+              </code>
+              <br />
+              <br />
+              Örnek:
+              <br />
+              <code style={{ color: "var(--muted)", fontSize: 12, whiteSpace: "pre-wrap" }}>
+                TTE;İş Portföy BIST Teknoloji Fonu;Teknoloji;Yerli (Borsa İstanbul);Kısmen
+                <br />
+                TGE;TGE Emtia Fonu;Emtia;Global;Uygun Değil
+                <br />
+                AFA;Ak Portföy Amerika Fonu;Genel Hisse;Yabancı (ABD);Düşük
+              </code>
+            </p>
+            {fundDbError && <div className="error-box" style={{ marginTop: 12 }}>⚠ {fundDbError}</div>}
+          </>
+        )}
+
         {(source === "live" || source === "csv" || source === "url") && (
           <div className="input-row" style={{ marginTop: 12 }}>
             <button className="primary" onClick={analyze} disabled={loading}>
@@ -586,7 +692,14 @@ export default function Home() {
       {source === "ai-find" && aiFindResult && (
         <>
           <div className="card">
-            <h2>🤖 AI Önerileri</h2>
+            <h2>
+              🤖 AI Önerileri
+              {customFunds.length > 0 && (
+                <span style={{ fontSize: 13, color: "var(--muted)", marginLeft: 8, fontWeight: 400 }}>
+                  ({customFunds.length} fonluk özel veritabanı)
+                </span>
+              )}
+            </h2>
             <p
               style={{
                 fontSize: 14,
